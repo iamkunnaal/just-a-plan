@@ -96,7 +96,8 @@ h2{font-family:Georgia,serif;font-size:clamp(30px,7vw,40px);line-height:1.1;marg
         <button class="time-option" data-time="6:00 PM">6:00 PM</button>
         <button class="time-option" data-time="7:00 PM">7:00 PM</button>
       </div>
-      <button class="primary" id="confirmBtn">Lock it in 🔒</button>
+      <button class="primary" id="confirmBtn">Confirm my time 🔒</button>
+      <p class="small" id="submitStatus" aria-live="polite" style="margin-top:12px"></p>
       <p class="hint">Choose wisely. The snacks are counting on you.</p>
     </section>
 
@@ -125,6 +126,8 @@ h2{font-family:Georgia,serif;font-size:clamp(30px,7vw,40px);line-height:1.1;marg
   const screens = ["invite","schedule","confirmed"];
   let chosenTime = "5:00 PM";
   let noMoves = 0;
+  const responseEndpoint = "https://script.google.com/macros/s/AKfycbzBxTjbCpSVRtSwj2ExVkW3KybfI0VAMW2j9pxpZXgrEimqgFm9aLcM5VSV55b9W9BDKw/exec";
+  const invitationDate = "2026-11-21";
   function show(id){
     screens.forEach(s => $(s).classList.toggle("active",s===id));
     window.scrollTo({top:0,behavior:"smooth"});
@@ -161,10 +164,38 @@ h2{font-family:Georgia,serif;font-size:clamp(30px,7vw,40px);line-height:1.1;marg
       }
     });
   }
-  $("confirmBtn").addEventListener("click",()=>{
-    $("confirmationTime").textContent=chosenTime;
-    $("confirmationDate").textContent="Saturday, November 21";
-    show("confirmed");celebrate();
+  $("confirmBtn").addEventListener("click", async()=>{
+    const confirmButton = $("confirmBtn");
+    const status = $("submitStatus");
+    confirmButton.disabled = true;
+    confirmButton.textContent = "Sending your RSVP…";
+    status.textContent = "Sending your choice to the chai-date headquarters…";
+
+    const params = new URLSearchParams({
+      name: "Ankhee",
+      response: "YES",
+      date: invitationDate,
+      time: chosenTime
+    });
+
+    try {
+      // Apps Script's simple GET endpoint is called in no-cors mode.
+      // The browser cannot read its response, but the request is sent to the script.
+      await fetch(responseEndpoint + "?" + params.toString(), {
+        method: "GET",
+        mode: "no-cors",
+        cache: "no-store"
+      });
+      $("confirmationTime").textContent = chosenTime;
+      $("confirmationDate").textContent = "Saturday, November 21";
+      $("copyStatus").textContent = "Your choice has been sent to the RSVP service. Kunal will check the chai-date responses. ☕";
+      show("confirmed");
+      celebrate();
+    } catch (error) {
+      status.textContent = "Couldn't send your response. Please check your internet connection and try again.";
+      confirmButton.disabled = false;
+      confirmButton.textContent = "Try again 🔒";
+    }
   });
   $("copyBtn").addEventListener("click",async()=>{
     const message=`Chai date confirmed! Saturday, November 21, 2026 at ${chosenTime}. Chai / coffee + catching up + top-tier nonsense. ☕😂`;
